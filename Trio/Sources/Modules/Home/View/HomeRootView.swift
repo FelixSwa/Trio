@@ -200,6 +200,7 @@ extension Home {
                 }
                 // fixed slot: header state changes never reflow the zones below
                 .frame(height: HomeLayout.headerHeight)
+                .overlay(alignment: .topTrailing) { floopBadge }
 
                 mealPanel().frame(height: HomeLayout.mealSlotHeight)
 

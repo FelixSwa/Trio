@@ -68,6 +68,22 @@ extension View {
 // MARK: - Zone B: header (pump panel / glucose bobble / loop status)
 
 extension Home.RootView {
+    /// FLoop: App-Logo und Name oben rechts im Header
+    var floopBadge: some View {
+        HStack(spacing: 6) {
+            Image("floop")
+                .resizable()
+                .frame(width: 20, height: 20)
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            Text(verbatim: "FLoop")
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(.primary)
+        }
+        .padding(.top, 6)
+        .padding(.trailing, 20)
+        .accessibilityHidden(true)
+    }
+
     var glucoseView: some View {
         CurrentGlucoseView(
             timerDate: state.timerDate,
