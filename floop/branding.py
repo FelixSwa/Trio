@@ -76,16 +76,36 @@ def string_units(node):
 
 
 def tracked(pattern: str):
-    files = subprocess.run(["git", "ls-files", pattern], cwd=ROOT, capture_output=True, text=True, check=True)
-    return [ROOT / f for f in files.stdout.splitlines() if f]
+    # inkl. Submodule (Pod-Treiber, LoopKit usw.); Testdateien auslassen
+    files = subprocess.run(["git", "ls-files", "--recurse-submodules", pattern], cwd=ROOT,
+                           capture_output=True, text=True, check=True)
+    return [ROOT / f for f in files.stdout.splitlines() if f and not re.search(r"Tests?/", f)]
 
 
-def do_xcstrings(path: Path, write: bool) -> int:
+OVERRIDES = ROOT / "floop" / "de_overrides.json"
+
+
+def load_overrides():
+    """Eigene deutsche Übersetzungen: {Katalogpfad: {Schlüssel: Text}}."""
+    return json.loads(OVERRIDES.read_text(encoding="utf-8")) if OVERRIDES.exists() else {}
+
+
+def do_xcstrings(path: Path, write: bool, de_texts: dict) -> int:
     raw = path.read_text(encoding="utf-8")
     data = json.loads(raw)
     source = data.get("sourceLanguage", "en")
+    strings = data.get("strings", {})
     changed = 0
-    for key, entry in data.get("strings", {}).items():
+    # 1. fehlende/verbesserte deutsche Übersetzungen einspielen
+    for key, text in de_texts.items():
+        entry = strings.get(key)
+        if entry is None:
+            print(f"  Hinweis: Text nicht mehr vorhanden (Trio hat ihn geändert): {key[:70]!r}")
+            continue
+        entry.setdefault("localizations", {})["de"] = {"stringUnit": {"state": "translated", "value": text}}
+        changed += 1
+    # 2. "Trio" -> "FLoop" in allen Sprachen
+    for key, entry in strings.items():
         locs = entry.get("localizations", {})
         for unit in string_units(locs):
             v = unit.get("value", "")
@@ -143,9 +163,10 @@ def do_swift(write: bool) -> int:
 
 def main():
     write = "--check" not in sys.argv
+    overrides = load_overrides()
     total = 0
     for f in tracked("*.xcstrings"):
-        n = do_xcstrings(f, write)
+        n = do_xcstrings(f, write, overrides.pop(f.relative_to(ROOT).as_posix(), {}))
         if n:
             print(f"  {n:4d}  {f.relative_to(ROOT)}")
         total += n
@@ -154,6 +175,8 @@ def main():
         if n:
             print(f"  {n:4d}  {f.relative_to(ROOT)}")
         total += n
+    for cat in overrides:
+        print(f"  Hinweis: Katalog für Übersetzungen nicht gefunden: {cat}")
     n = do_swift(write)
     print(f"  {n:4d}  Swift-Texte")
     total += n
