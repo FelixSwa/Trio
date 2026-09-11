@@ -212,6 +212,9 @@ jobs:
       - name: Customize Trio
         run: |
 
+          # FLoop: "Trio" in allen sichtbaren Texten durch "FLoop" ersetzen (siehe floop/branding.py)
+          python3 ./floop/branding.py || echo "::warning::FLoop-Branding fehlgeschlagen - App zeigt teilweise 'Trio'"
+
           # Trio workspace patches
           # -applies any patches located in the Trio/patches/ directory
           if $(ls ./patches/* &> /dev/null); then
